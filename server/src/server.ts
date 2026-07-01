@@ -6,9 +6,12 @@ import cors from 'cors'
 import { notFound } from "./middleware/notFound";
 import { errorHandler } from "./middleware/errorHandler";
 import { ok } from "./utils/envelope";
+import { clerkMiddleware } from '@clerk/express';
+import { authRouter } from "./routes/auth/auth.route";
 async function entryPoint() {
     await connectToDatabase();
     const app = express();
+    app.use(clerkMiddleware())
     
     const corsOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
         .split(",")
@@ -27,6 +30,9 @@ async function entryPoint() {
     });
   app.use(express.json());
   app.use(morgan("dev"));
+
+  app.use("/api/auth", authRouter);
+
   app.use(notFound);
   app.use(errorHandler);
 
