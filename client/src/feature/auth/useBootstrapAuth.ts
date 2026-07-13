@@ -1,10 +1,10 @@
 import { useAuth } from "@clerk/react";
-import { useAuthStore } from "./store";
 import { useEffect } from "react";
-import { getMe, syncUser } from "./api";
 import { setApiTokenGetter } from "@/lib/api";
+import { getMe, syncUser } from "./api";
+import { useAuthStore } from "./store";
 
-export function useBootstrapAuth() {   // Initialize the application or finish the startup process.
+export function useBootstrapAuth() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { setLoading, setUser, clearAuth, setError } = useAuthStore();
 
@@ -13,11 +13,19 @@ export function useBootstrapAuth() {   // Initialize the application or finish t
       const token = await getToken();
       return token ?? null;
     });
+
+    return () => {
+      setApiTokenGetter(null);
+    };
   }, [getToken]);
 
   useEffect(() => {
-    async function run() {
-      if (!isLoaded) return;
+    let cancelled = false;
+
+    async function bootstrapAuth() {
+      if (!isLoaded) {
+        return;
+      }
 
       if (!isSignedIn) {
         clearAuth();
@@ -28,16 +36,43 @@ export function useBootstrapAuth() {   // Initialize the application or finish t
         setLoading();
 
         await syncUser();
-        const me = await getMe();
 
-        setUser(me?.user);
+        if (cancelled) {
+          return;
+        }
+
+        const response = await getMe();
+
+        if (cancelled) {
+          return;
+        }
+
+        setUser(response.user);
       } catch (error) {
-        const errMessage =
-          error instanceof Error ? error.message : "Failed to load user";
-        setError(errMessage);
+        if (cancelled) {
+          return;
+        }
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to initialize authentication.";
+
+        setError(message);
       }
     }
 
-    void run();
-  }, [isLoaded, isSignedIn, clearAuth, setError, setLoading, setUser]);
+    void bootstrapAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isLoaded,
+    isSignedIn,
+    clearAuth,
+    setError,
+    setLoading,
+    setUser,
+  ]);
 }

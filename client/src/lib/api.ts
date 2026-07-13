@@ -10,9 +10,11 @@ const api = axios.create({
 });
 
 
-let tokenGetter: (() => Promise<string | null>) | null = null;   // as get-tooken is hook and can be used in components only, 
+type ApiTokenGetter = () => Promise<string | null>;
 
-export function setApiTokenGetter(getter: () => Promise<string | null>) {
+let tokenGetter: ApiTokenGetter | null = null;
+
+export function setApiTokenGetter(getter: ApiTokenGetter | null) {  // a function OR null is accepted
   tokenGetter = getter;
 }
 
