@@ -5,7 +5,7 @@ import { Commonloader } from "../common/Loader";
 
 export function PublicOnlyLayout() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { isBootstrapped, status } = useAuthStore();
+  const { isBootstrapped, status, user } = useAuthStore();
 
   if (!isLoaded) {
     return <Commonloader text="Checking authentication..." />;
@@ -19,7 +19,7 @@ export function PublicOnlyLayout() {
   }
 
   if (isSignedIn) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={user?.role === "admin" ? "/admin" : "/"} replace />;
   }
 
   return <Outlet />;
