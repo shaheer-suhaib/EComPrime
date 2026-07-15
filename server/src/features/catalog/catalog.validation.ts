@@ -159,6 +159,47 @@ export const createProductSchema = z
     }
   });
 
+
+export const adminProductListQuerySchema = z.object({
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20),
+
+  status: z
+    .enum(["draft", "active", "archived"])
+    .optional(),
+
+  categoryId: objectIdSchema.optional(),
+
+  search: z
+    .string()
+    .trim()
+    .max(100)
+    .optional(),
+
+  sort: z
+    .enum([
+      "newest",
+      "oldest",
+      "name-asc",
+      "name-desc",
+    ])
+    .default("newest"),
+});
+
+export type AdminProductListQuery = z.infer<
+  typeof adminProductListQuerySchema
+>;
+
 export type CreateCategoryInput = z.infer<
   typeof createCategorySchema
 >;

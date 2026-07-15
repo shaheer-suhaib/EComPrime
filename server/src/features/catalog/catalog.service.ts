@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import type { Types, QueryFilter, SortOrder, } from "mongoose";
 import { AppError } from "../../utils/AppError";
 import { createSlug } from "../../utils/createSlug";
 import { Category } from "./category.model";
@@ -6,7 +6,10 @@ import { Product } from "./product.model";
 import type {
   CreateCategoryInput,
   CreateProductInput,
+  AdminProductListQuery
 } from "./catalog.validation";
+
+import type { ProductDocument } from "./product.model";
 
 
 function escapeRegex(value: string) {
@@ -165,4 +168,117 @@ export async function createProduct(
 
     throw error;
   }
+}
+
+
+// listing service
+
+
+export async function listAdminProducts(
+  query: AdminProductListQuery,
+) {
+  const filter: QueryFilter<ProductDocument> = {};
+
+  if (query.status) {
+    filter.status = query.status;
+  }
+
+  if (query.categoryId) {
+    filter.categoryId = query.categoryId;
+  }
+
+  if (query.search) {
+    const search = escapeRegex(query.search);
+
+    filter.$or = [
+      {
+        name: {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        brand: {
+          $regex: search,
+          $options: "i",
+        },
+      },
+      {
+        "variants.sku": {
+          $regex: search,
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  const sortOptions: Record<
+    AdminProductListQuery["sort"],
+    Record<string, SortOrder>
+  > = {
+    newest: { createdAt: -1 },
+    oldest: { createdAt: 1 },
+    "name-asc": { name: 1 },
+    "name-desc": { name: -1 },
+  };
+
+  const skip = (query.page - 1) * query.limit;
+
+  const [documents, total] = await Promise.all([
+    Product.find(filter)
+      .select(
+        [
+          "name",
+          "slug",
+          "brand",
+          "status",
+          "categoryId",
+          "images",
+          "variants.title",
+          "variants.sku",
+          "variants.priceMinor",
+          "variants.currency",
+          "createdAt",
+          "updatedAt",
+        ].join(" "),
+      )
+      .populate(
+        "categoryId",
+        "name slug status",
+      )
+      .sort(sortOptions[query.sort])
+      .skip(skip)
+      .limit(query.limit)
+      .lean(),
+
+    Product.countDocuments(filter),
+  ]);
+
+  const products = documents.map((product) => {
+    const activePrices = product.variants
+      .filter((variant) => variant.priceMinor != null)
+      .map((variant) => variant.priceMinor);
+
+    const minPriceMinor =
+      activePrices.length > 0
+        ? Math.min(...activePrices)
+        : null;
+
+    return {
+      ...product,
+      thumbnail: product.images[0] ?? null,
+      variantCount: product.variants.length,
+      minPriceMinor,
+    };
+  });
+
+  return {
+    products,
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.ceil(total / query.limit),
+    },
+  };
 }
