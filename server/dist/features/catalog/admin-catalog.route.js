@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.adminCatalogRouter = void 0;
+const express_1 = require("express");
+const AsyncHandler_1 = require("../../utils/AsyncHandler");
+const validateBody_1 = require("../../middleware/validateBody");
+const admin_catalog_controller_1 = require("./admin-catalog.controller");
+const catalog_validation_1 = require("./catalog.validation");
+exports.adminCatalogRouter = (0, express_1.Router)();
+exports.adminCatalogRouter.get("/categories", (0, AsyncHandler_1.asyncHandler)(admin_catalog_controller_1.listCategoriesController));
+exports.adminCatalogRouter.post("/categories", (0, validateBody_1.validateBody)(catalog_validation_1.createCategorySchema), (0, AsyncHandler_1.asyncHandler)(admin_catalog_controller_1.createCategoryController));
+exports.adminCatalogRouter.post("/products", (0, validateBody_1.validateBody)(catalog_validation_1.createProductSchema), (0, AsyncHandler_1.asyncHandler)(admin_catalog_controller_1.createProductController));

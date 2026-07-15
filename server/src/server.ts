@@ -8,10 +8,11 @@ import { errorHandler } from "./middleware/errorHandler";
 import { ok } from "./utils/envelope";
 import { clerkMiddleware } from '@clerk/express';
 import { authRouter } from "./routes/auth/auth.route";
+import { adminRouter } from "./routes/admin/admin.route";
 async function entryPoint() {
     await connectToDatabase();
     const app = express();
-    app.use(clerkMiddleware())
+    
     
     const corsOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
         .split(",")
@@ -25,13 +26,18 @@ async function entryPoint() {
         }),
     );
 
-    app.get("/health", (_req, res) => {
-        res.status(200).json(ok({ message: "Server is healthy/in running state" }));
-    });
+   
+    
   app.use(express.json());
   app.use(morgan("dev"));
+  app.use(clerkMiddleware())
+  app.get("/health", (_req, res) => {
+        res.status(200).json(ok({ message: "Server is healthy/in running state" }));
+    });
+
 
   app.use("/api/auth", authRouter);
+  app.use("/api/admin", adminRouter);
 
   app.use(notFound);
   app.use(errorHandler);
