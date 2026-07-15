@@ -6,6 +6,8 @@ import type {
   AdminProductListQuery,
   CreateCategoryInput,
   CreateProductInput,
+  ProductIdParams,
+  UpdateProductInput,
 } from "./catalog.validation";
 
 import {
@@ -13,6 +15,8 @@ import {
   createProduct,
   listAdminCategories,
   listAdminProducts,
+  getAdminProductById,
+  updateProduct,
 } from "./catalog.service";
 
 
@@ -96,5 +100,51 @@ export async function listProductsController(
       },
       result.pagination,
     ),
+  );
+}
+
+
+export async function getProductController(
+  _req: Request,
+  res: Response,
+) {
+  const { productId } =
+    res.locals.validatedParams as ProductIdParams;
+
+  const product = await getAdminProductById(productId);
+
+  res.status(200).json(
+    ok({
+      product,
+    }),
+  );
+}
+
+export async function updateProductController(
+  req: Request,
+  res: Response,
+) {
+  const { productId } =
+    res.locals.validatedParams as ProductIdParams;
+
+  const adminUser = res.locals.dbUser;
+
+  if (!adminUser) {
+    throw new AppError(
+      500,
+      "Authenticated admin context is missing.",
+    );
+  }
+
+  const product = await updateProduct(
+    productId,
+    req.body as UpdateProductInput,
+    adminUser._id as Types.ObjectId,
+  );
+
+  res.status(200).json(
+    ok({
+      product,
+    }),
   );
 }

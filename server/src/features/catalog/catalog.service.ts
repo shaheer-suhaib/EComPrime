@@ -6,7 +6,8 @@ import { Product } from "./product.model";
 import type {
   CreateCategoryInput,
   CreateProductInput,
-  AdminProductListQuery
+  AdminProductListQuery,
+  UpdateProductInput,
 } from "./catalog.validation";
 
 import type { ProductDocument } from "./product.model";
@@ -281,4 +282,106 @@ export async function listAdminProducts(
       totalPages: Math.ceil(total / query.limit),
     },
   };
+}
+
+
+export async function getAdminProductById(
+  productId: string,
+) {
+  const product = await Product.findById(productId)
+    .populate("categoryId", "name slug status")
+    .lean();
+
+  if (!product) {
+    throw new AppError(404, "Product not found.");
+  }
+
+  return product;
+}
+
+export async function updateProduct(
+  productId: string,
+  input: UpdateProductInput,
+  adminUserId: Types.ObjectId,
+) {
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    throw new AppError(404, "Product not found.");
+  }
+
+  if (product.status === "archived") {
+    throw new AppError(
+      409,
+      "An archived product cannot be edited.",
+    );
+  }
+
+  if (input.categoryId) {
+    const category = await Category.findById(
+      input.categoryId,
+    );
+
+    if (!category) {
+      throw new AppError(
+        400,
+        "The selected category does not exist.",
+      );
+    }
+
+    if (
+      product.status === "active" &&
+      category.status !== "active"
+    ) {
+      throw new AppError(
+        409,
+        "An active product cannot use an inactive category.",
+      );
+    }
+  }
+
+  if (input.variants) {
+    const requestedSkus = input.variants.map(
+      (variant) => variant.sku,
+    );
+
+    const productWithMatchingSku = await Product.exists({
+      _id: {
+        $ne: productId,
+      },
+      "variants.sku": {
+        $in: requestedSkus,
+      },
+    });
+
+    if (productWithMatchingSku) {
+      throw new AppError(
+        409,
+        "One or more SKUs are already used by another product.",
+      );
+    }
+  }
+
+  Object.assign(product, input, {
+    updatedBy: adminUserId,
+  });
+
+  try {
+    await product.save();
+    await product.populate(
+      "categoryId",
+      "name slug status",
+    );
+
+    return product;
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      throw new AppError(
+        409,
+        "The product slug or one of its SKUs already exists.",
+      );
+    }
+
+    throw error;
+  }
 }

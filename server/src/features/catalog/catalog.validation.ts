@@ -196,6 +196,56 @@ export const adminProductListQuerySchema = z.object({
     .default("newest"),
 });
 
+
+export const productIdParamsSchema = z.object({
+  productId: objectIdSchema,
+});
+
+export const updateProductSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2)
+      .max(150),
+    shortDescription: z
+      .string()
+      .trim()
+      .max(300),
+    description: z
+      .string()
+      .trim()
+      .max(10_000),
+    brand: z
+      .string()
+      .trim()
+      .max(100),
+    categoryId: objectIdSchema,
+    images: z
+      .array(productImageSchema)
+      .max(10),
+    variants: z
+      .array(productVariantSchema)
+      .min(1)
+      .max(100),
+  })
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    {
+      message:
+        "At least one product field must be provided.",
+    },
+  );
+
+export type ProductIdParams = z.infer<
+  typeof productIdParamsSchema
+>;
+
+export type UpdateProductInput = z.infer<
+  typeof updateProductSchema
+>;
+
 export type AdminProductListQuery = z.infer<
   typeof adminProductListQuerySchema
 >;
