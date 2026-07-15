@@ -35,13 +35,14 @@ export async function getDbUserFromReq(req: Request) {
 //user logged in user + admin access
 
 export const requireAdmin = asyncHandler(
-  async (req: Request, _res: Response, next: NextFunction) => {
-    const extractCurrentDbUser = await getDbUserFromReq(req);
+  async (req: Request, res: Response, next: NextFunction) => {
+    const dbUser = await getDbUserFromReq(req);
 
-    if (extractCurrentDbUser.role !== "admin") {
-      throw new AppError(403, "Admin access only");
+    if (dbUser.role !== "admin") {
+      throw new AppError(403, "Admin access only.");
     }
 
+    res.locals.dbUser = dbUser; // res.locals is an object provided by Express for storing request-specific data that later middleware can access.
     next();
   },
 );
