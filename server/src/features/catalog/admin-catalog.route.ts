@@ -5,9 +5,11 @@ import {
   createCategoryController,
   listCategoriesController,
   createProductController,
+  listProductsController,
 } from "./admin-catalog.controller";
 
-import { createCategorySchema,createProductSchema, } from "./catalog.validation";
+import { createCategorySchema,createProductSchema, adminProductListQuerySchema} from "./catalog.validation";
+import { validateQuery } from "../../middleware/validateQuery";
 
 export const adminCatalogRouter = Router();
 
@@ -26,4 +28,10 @@ adminCatalogRouter.post(
   "/products",
   validateBody(createProductSchema),
   asyncHandler(createProductController),
+);
+
+adminCatalogRouter.get(
+  "/products",
+  validateQuery(adminProductListQuerySchema),
+  asyncHandler(listProductsController),
 );

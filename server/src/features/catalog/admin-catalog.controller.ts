@@ -3,6 +3,7 @@ import type { Types } from "mongoose";
 import { AppError } from "../../utils/AppError";
 import { ok } from "../../utils/envelope";
 import type {
+  AdminProductListQuery,
   CreateCategoryInput,
   CreateProductInput,
 } from "./catalog.validation";
@@ -11,6 +12,7 @@ import {
   createCategory,
   createProduct,
   listAdminCategories,
+  listAdminProducts,
 } from "./catalog.service";
 
 
@@ -78,3 +80,21 @@ export async function createProductController(
   );
 }
 
+export async function listProductsController(
+  _req: Request,
+  res: Response,
+) {
+  const query =
+    res.locals.validatedQuery as AdminProductListQuery;
+
+  const result = await listAdminProducts(query);
+
+  res.status(200).json(
+    ok(
+      {
+        products: result.products,
+      },
+      result.pagination,
+    ),
+  );
+}
